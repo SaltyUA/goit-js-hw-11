@@ -50,16 +50,6 @@ async function createItems() {
           .join(``)
       );
 
-      gallery.refresh();
-
-      const { height: cardHeight } =
-        elements.gallery.firstElementChild.getBoundingClientRect();
-
-      window.scrollBy({
-        top: cardHeight * 2,
-        behavior: 'smooth',
-      });
-
       if (totalPages > page) {
         elements.loadMore.classList.remove(`isHidden`);
       }
@@ -76,11 +66,12 @@ async function newSearch(e) {
   e.preventDefault();
 
   page = 1;
-  currentSearch = e.currentTarget.firstElementChild.value;
+  currentSearch = e.currentTarget.firstElementChild.value.trim();
   elements.gallery.innerHTML = ``;
   elements.loadMore.classList.add(`isHidden`);
 
   await createItems();
+
   if (totalHits <= 0) {
     return;
   }
@@ -88,6 +79,14 @@ async function newSearch(e) {
   gallery = new SimpleLightbox('.gallery-link');
 
   Notiflix.Notify.success(`"Hooray! We found ${totalHits} images."`);
+
+  const { height: cardHeight } =
+    elements.gallery.firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 0.5,
+    behavior: 'smooth',
+  });
 
   page += 1;
   e.target.reset();
@@ -97,6 +96,14 @@ async function loadMoreImg() {
   await createItems();
 
   gallery.refresh();
+
+  const { height: cardHeight } =
+    elements.gallery.firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
 
   page += 1;
 
