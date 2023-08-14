@@ -13,7 +13,7 @@ let gallery = null;
 let page = 1;
 let currentSearch;
 let totalHits = 0;
-let totalPages = totalHits / 40;
+let totalPages = 0;
 elements.searchForm.addEventListener(`submit`, newSearch);
 elements.loadMore.addEventListener(`click`, loadMoreImg);
 
@@ -31,7 +31,7 @@ async function createItems() {
       }
       const galleryArr = response.hits;
       totalHits = response.totalHits;
-      totalPages = totalHits / 40;
+      totalPages = Math.ceil(totalHits / 40);
       elements.gallery.insertAdjacentHTML(
         `beforeend`,
         galleryArr
