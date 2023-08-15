@@ -58,6 +58,15 @@ async function createItems() {
           )
           .join(``)
       );
+
+      page += 1;
+
+      if (page > totalPages) {
+        observer.unobserve(elements.target);
+        Notiflix.Notify.success(
+          `There all images for your request. Try another`
+        );
+      }
     })
     .catch(({ code, message }) => {
       Notiflix.Report.failure(
@@ -132,4 +141,7 @@ async function loadMoreImg() {
     elements.loadMore.classList.add(`isHidden`);
     Notiflix.Notify.success(`There all images for your request. Try another`);
   }
+
+  observer.observe(elements.target);
+  elements.loadMore.classList.add(`isHidden`);
 }
