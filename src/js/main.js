@@ -18,7 +18,7 @@ let totalPages = 0;
 
 const options = {
   root: null,
-  rootMargin: `500px`,
+  rootMargin: `1000px`,
 };
 const observer = new IntersectionObserver(createItems, options);
 
@@ -32,11 +32,9 @@ async function createItems() {
         Notiflix.Notify.failure(
           'Sorry, there are no images matching your search query. Please try again.'
         );
-
-        elements.searchForm.reset();
-
         return;
       }
+
       const galleryArr = response.hits;
       totalHits = response.totalHits;
       totalPages = Math.ceil(totalHits / 40);
@@ -58,6 +56,10 @@ async function createItems() {
           )
           .join(``)
       );
+
+      if (page > 1) {
+        gallery.refresh();
+      }
 
       page += 1;
 
@@ -118,30 +120,10 @@ async function newSearch(e) {
     elements.loadMore.classList.remove(`isHidden`);
   }
 
-  page += 1;
   e.target.reset();
 }
 
 async function loadMoreImg() {
-  await createItems();
-
-  gallery.refresh();
-
-  const { height: cardHeight } =
-    elements.gallery.firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
-
-  page += 1;
-
-  if (page > totalPages) {
-    elements.loadMore.classList.add(`isHidden`);
-    Notiflix.Notify.success(`There all images for your request. Try another`);
-  }
-
   observer.observe(elements.target);
   elements.loadMore.classList.add(`isHidden`);
 }
