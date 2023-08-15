@@ -7,6 +7,7 @@ const elements = {
   searchForm: document.querySelector(`.search-form`),
   gallery: document.querySelector(`.gallery`),
   loadMore: document.querySelector(`.load-more`),
+  target: document.querySelector(`.js-guard`),
 };
 
 let gallery = null;
@@ -14,6 +15,13 @@ let page = 1;
 let currentSearch;
 let totalHits = 0;
 let totalPages = 0;
+
+const options = {
+  root: null,
+  rootMargin: `500px`,
+};
+const observer = new IntersectionObserver(createItems, options);
+
 elements.searchForm.addEventListener(`submit`, newSearch);
 elements.loadMore.addEventListener(`click`, loadMoreImg);
 
@@ -32,6 +40,7 @@ async function createItems() {
       const galleryArr = response.hits;
       totalHits = response.totalHits;
       totalPages = Math.ceil(totalHits / 40);
+
       elements.gallery.insertAdjacentHTML(
         `beforeend`,
         galleryArr
@@ -49,10 +58,6 @@ async function createItems() {
           )
           .join(``)
       );
-
-      if (totalPages > page) {
-        elements.loadMore.classList.remove(`isHidden`);
-      }
     })
     .catch(({ code, message }) => {
       Notiflix.Report.failure(
@@ -64,19 +69,31 @@ async function createItems() {
 }
 async function newSearch(e) {
   e.preventDefault();
+  observer.unobserve(elements.target);
+  totalHits = 0;
 
   page = 1;
   currentSearch = e.currentTarget.firstElementChild.value.trim();
+
+  if (currentSearch === '') {
+    Notiflix.Notify.warning('Please, enter search request.');
+    return;
+  }
+
   elements.gallery.innerHTML = ``;
+
   elements.loadMore.classList.add(`isHidden`);
 
   await createItems();
 
-  if (totalHits <= 0) {
+  if (totalHits === 0) {
     return;
   }
 
-  gallery = new SimpleLightbox('.gallery-link');
+  gallery = new SimpleLightbox('.gallery-link', {
+    captionsData: 'alt',
+    captionDelay: 250,
+  });
 
   Notiflix.Notify.success(`"Hooray! We found ${totalHits} images."`);
 
@@ -87,6 +104,10 @@ async function newSearch(e) {
     top: cardHeight * 0.5,
     behavior: 'smooth',
   });
+
+  if (totalPages > page) {
+    elements.loadMore.classList.remove(`isHidden`);
+  }
 
   page += 1;
   e.target.reset();
