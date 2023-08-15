@@ -65,6 +65,7 @@ async function newSearch(e) {
         Notiflix.Notify.failure(
           'Sorry, there are no images matching your search query. Please try again.'
         );
+        e.target.reset();
         return;
       }
       totalHits = response.totalHits;
