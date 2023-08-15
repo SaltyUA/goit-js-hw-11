@@ -6,7 +6,6 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 const elements = {
   searchForm: document.querySelector(`.search-form`),
   gallery: document.querySelector(`.gallery`),
-  loadMore: document.querySelector(`.load-more`),
   target: document.querySelector(`.js-guard`),
 };
 
@@ -20,30 +19,17 @@ const options = {
   root: null,
   rootMargin: `1000px`,
 };
-const observer = new IntersectionObserver(createItems, options);
+
+const observer = new IntersectionObserver(loadMore, options);
 
 elements.searchForm.addEventListener(`submit`, newSearch);
-elements.loadMore.addEventListener(`click`, loadMoreImg);
 
-async function createItems() {
-  await getImages(currentSearch, page)
-    .then(response => {
-      if (!response.hits.length) {
-        Notiflix.Notify.failure(
-          'Sorry, there are no images matching your search query. Please try again.'
-        );
-        return;
-      }
-
-      const galleryArr = response.hits;
-      totalHits = response.totalHits;
-      totalPages = Math.ceil(totalHits / 40);
-
-      elements.gallery.insertAdjacentHTML(
-        `beforeend`,
-        galleryArr
-          .map(
-            hit => `<div class="gallery-item">
+async function createItems(imagesArr) {
+  elements.gallery.insertAdjacentHTML(
+    `beforeend`,
+    imagesArr
+      .map(
+        hit => `<div class="gallery-item">
         <a class="gallery-link" href="${hit.largeImageURL}">
   <img class ="gallery-image" src="${hit.webformatURL}" alt="${hit.tags}" loading="lazy" /></a>
   <div class="info-box">
@@ -53,36 +39,16 @@ async function createItems() {
       <p class="info-text">&#x1F4E5 ${hit.downloads}</p>
   </div>
 </div>`
-          )
-          .join(``)
-      );
-
-      if (page > 1) {
-        gallery.refresh();
-      }
-
-      page += 1;
-
-      if (page > totalPages) {
-        observer.unobserve(elements.target);
-        Notiflix.Notify.success(
-          `There all images for your request. Try another`
-        );
-      }
-    })
-    .catch(({ code, message }) => {
-      Notiflix.Report.failure(
-        `${message}. Code: ${code} `,
-        'Oops! Something went wrong! Try reloading the page!',
-        'OK'
-      );
-    });
+      )
+      .join(``)
+  );
 }
 async function newSearch(e) {
   e.preventDefault();
-  observer.unobserve(elements.target);
-  totalHits = 0;
 
+  observer.unobserve(elements.target);
+
+  totalHits = 0;
   page = 1;
   currentSearch = e.currentTarget.firstElementChild.value.trim();
 
@@ -93,37 +59,86 @@ async function newSearch(e) {
 
   elements.gallery.innerHTML = ``;
 
-  elements.loadMore.classList.add(`isHidden`);
+  await getImages(currentSearch, page)
+    .then(response => {
+      if (!response.hits.length) {
+        Notiflix.Notify.failure(
+          'Sorry, there are no images matching your search query. Please try again.'
+        );
+        return;
+      }
+      totalHits = response.totalHits;
+      totalPages = Math.ceil(totalHits / 40);
 
-  await createItems();
+      Notiflix.Notify.success(`"Hooray! We found ${totalHits} images."`);
 
-  if (totalHits === 0) {
-    return;
-  }
+      createItems(response.hits);
 
-  gallery = new SimpleLightbox('.gallery-link', {
-    captionsData: 'alt',
-    captionDelay: 250,
-  });
+      e.target.reset();
 
-  Notiflix.Notify.success(`"Hooray! We found ${totalHits} images."`);
+      observer.observe(elements.target);
 
-  const { height: cardHeight } =
-    elements.gallery.firstElementChild.getBoundingClientRect();
+      gallery = new SimpleLightbox('.gallery-link', {
+        captionsData: 'alt',
+        captionDelay: 250,
+      });
 
-  window.scrollBy({
-    top: cardHeight * 0.5,
-    behavior: 'smooth',
-  });
+      const { height: cardHeight } =
+        elements.gallery.firstElementChild.getBoundingClientRect();
 
-  if (totalPages > page) {
-    elements.loadMore.classList.remove(`isHidden`);
-  }
+      window.scrollBy({
+        top: cardHeight * 0.5,
+        behavior: 'smooth',
+      });
 
-  e.target.reset();
+      if (page >= totalPages) {
+        observer.unobserve(elements.target);
+
+        return;
+      }
+    })
+    .catch(({ code, message }) => {
+      Notiflix.Report.failure(
+        `${message}. Code: ${code} `,
+        'Oops! Something went wrong! Try reloading the page!',
+        'OK'
+      );
+    });
 }
 
-async function loadMoreImg() {
-  observer.observe(elements.target);
-  elements.loadMore.classList.add(`isHidden`);
+async function loadMore(entries, observer) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      page += 1;
+
+      getImages(currentSearch, page)
+        .then(response => {
+          createItems(response.hits);
+
+          const { height: cardHeight } =
+            elements.gallery.firstElementChild.getBoundingClientRect();
+
+          window.scrollBy({
+            top: cardHeight * 2.28,
+            behavior: 'smooth',
+          });
+
+          if (page >= totalPages) {
+            observer.unobserve(elements.target);
+
+            Notiflix.Notify.success(
+              'We are sorry, but you have reached the end of search results.'
+            );
+          }
+          gallery.refresh();
+        })
+        .catch(({ code, message }) => {
+          Notiflix.Report.failure(
+            `${message}. Code: ${code} `,
+            'Oops! Something went wrong! Try reloading the page!',
+            'OK'
+          );
+        });
+    }
+  });
 }
